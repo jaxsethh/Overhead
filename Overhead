@@ -1,0 +1,130 @@
+--[[
+    GroupRank Overhead System
+    License: Jaxsethh
+    
+    INSTRUCTIONS:
+    1. Place this LocalScript inside StarterCharacterScripts
+    2. Change GROUP_ID to your Roblox Group ID
+    3. Change ZOOM to adjust BillboardGui size (default: 10)
+]]
+
+-- ============================================================
+--  CONFIGURATION
+-- ============================================================
+local GROUP_ID  = 775641663        -- << Replace with your Group ID
+local ZOOM      = 10       -- BillboardGui StudsOffset Y height
+-- ============================================================
+
+local Players        = game:GetService("Players")
+local RunService     = game:GetService("RunService")
+
+local localPlayer    = Players.LocalPlayer
+
+-- Rank colors per rank range (optional flair)
+local function getRankColor(rankNum)
+	if rankNum >= 250 then
+		return Color3.fromRGB(255, 215, 0)    -- Gold  (owner / high rank)
+	elseif rankNum >= 100 then
+		return Color3.fromRGB(255, 80,  80)   -- Red   (senior staff)
+	elseif rankNum >= 50 then
+		return Color3.fromRGB(80,  160, 255)  -- Blue  (staff)
+	elseif rankNum >= 10 then
+		return Color3.fromRGB(120, 220, 120)  -- Green (member)
+	else
+		return Color3.fromRGB(200, 200, 200)  -- Grey  (guest / low rank)
+	end
+end
+
+-- Build the BillboardGui overhead for a player
+local function createOverhead(character, player)
+	local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 10)
+	local head = character:WaitForChild("Head", 10)
+	if not head or not humanoidRootPart then return end
+
+	-- Remove any old overhead
+	if head:FindFirstChild("GroupRankOverhead") then
+		head.GroupRankOverhead:Destroy()
+	end
+
+	-- Get rank info
+	local rankName = "Guest"
+	local rankNum  = 0
+	local success, err = pcall(function()
+		rankNum  = player:GetRankInGroup(GROUP_ID)
+		rankName = player:GetRoleInGroup(GROUP_ID)
+	end)
+
+	-- Create BillboardGui
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name             = "GroupRankOverhead"
+	billboard.Adornee          = head
+	billboard.AlwaysOnTop      = false
+	billboard.StudsOffset      = Vector3.new(0, ZOOM, 0)
+	billboard.Size             = UDim2.new(0, 200, 0, 50)
+	billboard.ResetOnSpawn     = false
+
+	-- Hide from the local player only
+	billboard.PlayerToHideFrom = localPlayer
+
+	billboard.Parent = head
+
+	-- Frame
+	local frame = Instance.new("Frame")
+	frame.Size            = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BackgroundTransparency = 0.5
+	frame.BorderSizePixel = 0
+	frame.Parent          = billboard
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent       = frame
+
+	-- Username label
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size               = UDim2.new(1, 0, 0.5, 0)
+	nameLabel.Position           = UDim2.new(0, 0, 0, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text               = player.DisplayName
+	nameLabel.TextColor3         = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextScaled         = true
+	nameLabel.Font               = Enum.Font.GothamBold
+	nameLabel.Parent             = frame
+
+	-- Rank label
+	local rankLabel = Instance.new("TextLabel")
+	rankLabel.Size               = UDim2.new(1, 0, 0.5, 0)
+	rankLabel.Position           = UDim2.new(0, 0, 0.5, 0)
+	rankLabel.BackgroundTransparency = 1
+	rankLabel.Text               = "[ " .. rankName .. " ]"
+	rankLabel.TextColor3         = getRankColor(rankNum)
+	rankLabel.TextScaled         = true
+	rankLabel.Font               = Enum.Font.Gotham
+	rankLabel.Parent             = frame
+end
+
+-- Apply overhead to every player currently in the game
+local function applyToPlayer(player)
+	local character = player.Character or player.CharacterAdded:Wait()
+	createOverhead(character, player)
+
+	player.CharacterAdded:Connect(function(newChar)
+		createOverhead(newChar, player)
+	end)
+end
+
+-- Hook all players
+for _, player in ipairs(Players:GetPlayers()) do
+	task.spawn(applyToPlayer, player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	task.spawn(applyToPlayer, player)
+end)
+
+--[[
+    ─────────────────────────────────────────
+    License: Jaxsethh
+    Do not redistribute without permission.
+    ─────────────────────────────────────────
+]]
